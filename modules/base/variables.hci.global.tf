@@ -8,7 +8,7 @@ variable "adouSuffix" {
   description = "The suffix of Active Directory OU path."
 }
 
-variable "subnetMask" {
+variable "subnet_mask" {
   default     = "255.255.255.0"
   type        = string
   description = "The subnet mask for the network."

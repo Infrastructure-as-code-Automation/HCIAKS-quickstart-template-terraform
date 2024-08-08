@@ -10,7 +10,7 @@ variable "controlPlaneCount" {
   default     = 1
 }
 
-variable "agentPoolProfiles" {
+variable "agent_pool_profiles" {
   description = "The agent pool profiles for the Kubernetes cluster."
   type = list(object({
     count             = number
