@@ -5,7 +5,7 @@ variable "domain_admin_user" {
 }
 
 variable "domain_admin_password" {
-  sensitive   = true
+  # sensitive   = true
   type        = string
   description = "The password for the domain administrator account."
 }
@@ -14,19 +14,21 @@ variable "domain_admin_password" {
 variable "virtual_host_ip" {
   type        = string
   description = "The virtual host IP address."
-  default     = ""
 }
 
 variable "dc_port" {
   type        = number
   description = "Domain controller winrm port in virtual host"
-  default     = 5985
+  default     = 6985
 }
 
-variable "serverPorts" {
+variable "server_ports" {
   type        = map(number)
   description = "Server winrm ports in virtual host"
-  default     = {}
+  default = {
+    "AzSHOST1" = 15985,
+    "AzSHOST2" = 25985
+  }
 }
 
 

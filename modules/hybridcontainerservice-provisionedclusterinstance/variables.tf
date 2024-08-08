@@ -154,7 +154,7 @@ variable "kubernetes_version" {
 
   validation {
     condition     = can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+$", var.kubernetes_version))
-    error_message = "kubernetesVersion must be in the format of 'x.y.z'"
+    error_message = "kubernetes_version must be in the format of 'x.y.z'"
   }
 }
 
@@ -201,7 +201,7 @@ variable "pod_cidr" {
 
 variable "rbac_admin_group_object_ids" {
   type        = list(string)
-  default     = []
+  default     = ["ed888f99-66c1-48fe-992f-030f49ba50ed"]
   description = "The object id of the admin group of the azure rbac"
 }
 

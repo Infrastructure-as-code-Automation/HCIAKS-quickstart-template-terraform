@@ -1,3 +1,7 @@
+provider "azurerm" {
+  features {}
+}
+
 resource "azurerm_resource_group" "rg" {
   depends_on = [
     data.external.lnetIpCheck
@@ -32,10 +36,10 @@ module "hci-ad-provisioner" {
 
   enable_telemetry = var.enable_telemetry # see variables.tf
   # Beginning of specific varible for virtual environment
-  dc_port                  = 6985
+  dc_port                  = var.dc_port
   dc_ip                    = var.dc_ip
-  authentication_method    = "Credssp"
-  domain_fqdn              = "jumpstart.local"
+  authentication_method    = var.authentication_method
+  domain_fqdn              = var.domain_fqdn
   deployment_user_password = var.deployment_user_password
   domain_admin_user        = var.domain_admin_user
   domain_admin_password    = var.domain_admin_password
@@ -44,9 +48,9 @@ module "hci-ad-provisioner" {
 }
 
 module "hci-server-provisioner" {
-  source = "../hci-server-provisioner"
+  source     = "../hci-server-provisioner"
   for_each = {
-    for index, server in local.servers :
+    for index, server in var.servers :
     server.name => server.ipv4Address
   }
 
@@ -55,9 +59,9 @@ module "hci-server-provisioner" {
   resource_group_name      = azurerm_resource_group.rg.name
   local_admin_user         = var.local_admin_user
   local_admin_password     = var.local_admin_password
-  authentication_method    = "Credssp"
+  authentication_method    = var.authentication_method
   server_ip                = var.virtual_host_ip == "" ? each.value : var.virtual_host_ip
-  winrm_port               = var.virtual_host_ip == "" ? 5985 : local.server_ports[each.key]
+  winrm_port               = var.virtual_host_ip == "" ? 5985 : var.server_ports[each.key]
   subscription_id          = var.subscription_id
   location                 = azurerm_resource_group.rg.location
   tenant                   = data.azurerm_client_config.current.tenant_id
@@ -77,16 +81,16 @@ module "azurestackhci-cluster" {
   enable_telemetry = var.enable_telemetry # see variables.tf
 
   site_id                         = var.site_id
-  domain_fqdn                     = "jumpstart.local"
-  starting_address                = "192.168.1.55"
-  ending_address                  = "192.168.1.65"
+  domain_fqdn                     = var.domain_fqdn
+  starting_address                = var.starting_address
+  ending_address                  = var.ending_address
   subnet_mask                     = var.subnet_mask
-  default_gateway                 = "192.168.1.1"
-  dns_servers                     = ["192.168.1.254"]
+  default_gateway                 = var.default_gateway
+  dns_servers                     = var.dns_servers
   adou_path                       = local.adou_path
-  servers                         = local.servers
-  management_adapters             = local.management_adapters
-  storage_networks                = local.storage_networks
+  servers                         = var.servers
+  management_adapters             = var.management_adapters
+  storage_networks                = var.storage_networks
   rdma_enabled                    = false
   storage_connectivity_switchless = false
   custom_location_name            = local.custom_location_name
@@ -121,11 +125,11 @@ module "azurestackhci-logicalnetwork" {
   resource_group_id  = azurerm_resource_group.rg.id
   custom_location_id = data.azapi_resource.customlocation.id
   vm_switch_name     = "ConvergedSwitch(managementcompute)"
-  starting_address   = "192.168.1.171"
-  ending_address     = "192.168.1.190"
-  dns_servers        = ["192.168.1.254"]
-  default_gateway    = "192.168.1.1"
-  address_prefix     = "192.168.1.0/24"
+  starting_address   = var.lnet_starting_address
+  ending_address     = var.lnet_ending_address
+  dns_servers        = var.dns_servers
+  default_gateway    = var.default_gateway
+  address_prefix     = var.lnet_address_prefix
   vlan_id            = null
 }
 
@@ -133,7 +137,7 @@ data "azapi_resource" "logical_network" {
   depends_on = [module.azurestackhci-logicalnetwork]
   type       = "Microsoft.AzureStackHCI/logicalNetworks@2023-09-01-preview"
   name       = local.logical_network_name
-  parent_id  = data.azurerm_resource_group.rg.id
+  parent_id  = azurerm_resource_group.rg.id
 }
 
 data "azurerm_key_vault" "deployment_key_vault" {
@@ -156,10 +160,10 @@ module "hybridcontainerservice-provisionedclusterinstance" {
   logical_network_id          = data.azapi_resource.logical_network.id
   agent_pool_profiles         = var.agent_pool_profiles
   ssh_key_vault_id            = data.azurerm_key_vault.deployment_key_vault.id
-  control_plane_ip            = "192.168.1.190"
-  kubernetes_version          = "1.28.5"
+  control_plane_ip            = var.aksArc-controlPlaneIp
+  kubernetes_version          = var.kubernetes_version
   control_plane_count         = 1
-  rbac_admin_group_object_ids = ["ed888f99-66c1-48fe-992f-030f49ba50ed"]
+  rbac_admin_group_object_ids = var.rbac_admin_group_object_ids
 }
 
 # //Prepare AD and arc server

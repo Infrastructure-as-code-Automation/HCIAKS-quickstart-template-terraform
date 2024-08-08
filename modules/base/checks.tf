@@ -1,5 +1,5 @@
 data "external" "lnetIpCheck" {
-  program = ["powershell.exe", "-File", "${abspath(path.module)}/scripts/ip-range-overlap.ps1", var.startingAddress, var.endingAddress, var.lnet-startingAddress, var.lnet-endingAddress]
+  program = ["powershell.exe", "-File", "${abspath(path.module)}/scripts/ip-range-overlap.ps1", var.starting_address, var.ending_address, var.lnet_starting_address, var.lnet_ending_address]
 
   lifecycle {
     postcondition {

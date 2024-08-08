@@ -4,23 +4,18 @@ variable "enableProvisioners" {
   description = "Whether to enable provisioners."
 }
 
-variable "domainServerIP" {
-  description = "The ip of the domain server."
-  type        = string
-}
-
 variable "destory_adou" {
   description = "whether destroy previous adou"
   default     = false
   type        = bool
 }
 
-variable "authenticationMethod" {
+variable "authentication_method" {
   type        = string
   description = "The authentication method for Enter-PSSession."
   validation {
-    condition     = can(regex("^(Default|Basic|Negotiate|NegotiateWithImplicitCredential|Credssp|Digest|Kerberos)$", var.authenticationMethod))
+    condition     = can(regex("^(Default|Basic|Negotiate|NegotiateWithImplicitCredential|Credssp|Digest|Kerberos)$", var.authentication_method))
     error_message = "Value of authenticationMethod should be {Default | Basic | Negotiate | NegotiateWithImplicitCredential | Credssp | Digest | Kerberos}"
   }
-  default = "Default"
+  default = "Credssp"
 }
