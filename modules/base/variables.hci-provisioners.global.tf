@@ -1,4 +1,4 @@
-variable "enableProvisioners" {
+variable "enable_provisioners" {
   type        = bool
   default     = true
   description = "Whether to enable provisioners."

@@ -16,7 +16,7 @@ variable "lnet_ending_address" {
   default     = "192.168.1.190"
 }
 
-variable "lnet-vlanId" {
+variable "lnet_vlan_id" {
   type        = number
   description = "The vlan id of the logical network, default is not set vlan id, this can be omit if using existing logical network"
   default     = null

@@ -19,21 +19,24 @@ resource "azurerm_resource_group" "rg" {
 
 data "azurerm_client_config" "current" {}
 
-module "edge-site" {
-  source                = "../edge-site"
+module "edge_site" {
+  #source                = "../edge-site"
+  source  = "Azure/avm-res-edge-site/azurerm"
+  version = "0.1.0"
+
   location              = azurerm_resource_group.rg.location
-  address_resource_name = local.addressResourceName
+  address_resource_name = local.address_resource_name
   country               = var.country
   resource_group_id     = azurerm_resource_group.rg.id
-  site_display_name     = local.siteDisplayName
+  site_display_name     = local.site_display_name
   site_resource_name    = local.site_resource_name
   enable_telemetry      = var.enable_telemetry
 }
 
 # Prepare AD
-module "hci-ad-provisioner" {
+module "hci_ad_provisioner" {
   source              = "../hci-ad-provisioner"
-  count               = var.enableProvisioners ? 1 : 0
+  count               = var.enable_provisioners ? 1 : 0
   resource_group_name = azurerm_resource_group.rg.name
 
   enable_telemetry = var.enable_telemetry # see variables.tf
@@ -50,9 +53,9 @@ module "hci-ad-provisioner" {
 }
 
 # Prepare arc server
-module "hci-server-provisioner" {
+module "hci_server_provisioner" {
   source = "../hci-server-provisioner"
-  for_each = var.enableProvisioners ? {
+  for_each = var.enable_provisioners ? {
     for index, server in var.servers :
     server.name => server.ipv4Address
   } : {}
@@ -73,12 +76,12 @@ module "hci-server-provisioner" {
   expand_c                 = var.virtual_host_ip == "" ? false : true
 }
 
-module "azurestackhci-cluster" {
+module "azurestackhci_cluster" {
   source     = "../azurestackhci-cluster"
-  depends_on = [module.hci-server-provisioner, module.hci-ad-provisioner]
+  depends_on = [module.hci_server_provisioner, module.hci_ad_provisioner]
 
   location            = azurerm_resource_group.rg.location
-  name                = local.cluster_name # TODO update with module.naming.<RESOURCE_TYPE>.name_unique
+  name                = local.cluster_name
   resource_group_name = azurerm_resource_group.rg.name
 
   enable_telemetry = var.enable_telemetry # see variables.tf
@@ -94,12 +97,12 @@ module "azurestackhci-cluster" {
   servers                         = var.servers
   management_adapters             = var.management_adapters
   storage_networks                = var.storage_networks
-  rdma_enabled                    = var.rdmaEnabled
-  storage_connectivity_switchless = var.storageConnectivitySwitchless
+  rdma_enabled                    = var.rdma_enabled
+  storage_connectivity_switchless = var.storage_connectivity_switchless
   custom_location_name            = local.custom_location_name
   witness_storage_account_name    = local.witness_storage_account_name
   keyvault_name                   = local.keyvault_name
-  random_suffix                   = local.randomSuffix
+  random_suffix                   = local.random_suffix
   deployment_user                 = local.deployment_user_name
   deployment_user_password        = var.deployment_user_password
   local_admin_user                = var.local_admin_user
@@ -109,9 +112,9 @@ module "azurestackhci-cluster" {
   rp_service_principal_object_id  = var.rp_service_principal_object_id
 }
 
-module "azurestackhci-logicalnetwork" {
+module "azurestackhci_logicalnetwork" {
   source     = "../azurestackhci-logicalnetwork"
-  depends_on = [module.azurestackhci-cluster]
+  depends_on = [module.azurestackhci_cluster]
 
   location            = azurerm_resource_group.rg.location
   name                = local.logical_network_name
@@ -119,26 +122,26 @@ module "azurestackhci-logicalnetwork" {
 
   enable_telemetry   = var.enable_telemetry # see variables.tf
   resource_group_id  = azurerm_resource_group.rg.id
-  custom_location_id = module.azurestackhci-cluster.customlocation.id
-  vm_switch_name     = module.azurestackhci-cluster.v_switch_name
+  custom_location_id = module.azurestackhci_cluster.customlocation.id
+  vm_switch_name     = module.azurestackhci_cluster.v_switch_name
   starting_address   = var.lnet_starting_address
   ending_address     = var.lnet_ending_address
-  dns_servers        = length(var.lnet-dnsServers) == 0 ? var.dns_servers : var.lnet-dnsServers
-  default_gateway    = var.lnet-defaultGateway == "" ? var.default_gateway : var.lnet-defaultGateway
+  dns_servers        = length(var.lnet_dns_servers) == 0 ? var.dns_servers : var.lnet_dns_servers
+  default_gateway    = var.lnet_default_gateway == "" ? var.default_gateway : var.lnet_default_gateway
   address_prefix     = var.lnet_address_prefix
-  vlan_id            = var.lnet-vlanId
+  vlan_id            = var.lnet_vlan_id
 }
 
 data "azapi_resource" "logical_network" {
-  depends_on = [module.azurestackhci-logicalnetwork]
+  depends_on = [module.azurestackhci_logicalnetwork]
   type       = "Microsoft.AzureStackHCI/logicalNetworks@2023-09-01-preview"
   name       = local.logical_network_name
   parent_id  = azurerm_resource_group.rg.id
 }
 
-module "hybridcontainerservice-provisionedclusterinstance" {
+module "hybridcontainerservice_provisionedclusterinstance" {
   source     = "../hybridcontainerservice-provisionedclusterinstance"
-  depends_on = [module.azurestackhci-cluster, module.azurestackhci-logicalnetwork]
+  depends_on = [module.azurestackhci_cluster, module.azurestackhci_logicalnetwork]
 
   location            = azurerm_resource_group.rg.location
   name                = local.aks_arc_name
@@ -146,13 +149,13 @@ module "hybridcontainerservice-provisionedclusterinstance" {
 
   enable_telemetry = var.enable_telemetry # see variables.tf
 
-  custom_location_id          = module.azurestackhci-cluster.customlocation.id
+  custom_location_id          = module.azurestackhci_cluster.customlocation.id
   logical_network_id          = module.azurestackhci-logicalnetwork.resource_id
   agent_pool_profiles         = var.agent_pool_profiles
-  ssh_key_vault_id            = module.azurestackhci-cluster.keyvault.id
-  control_plane_ip            = var.aksArc-controlPlaneIp
+  ssh_key_vault_id            = module.azurestackhci_cluster.keyvault.id
+  control_plane_ip            = var.aks_arc_control_plane_ip
   kubernetes_version          = var.kubernetes_version
-  control_plane_count         = var.controlPlaneCount
+  control_plane_count         = var.control_plane_count
   rbac_admin_group_object_ids = var.rbac_admin_group_object_ids
 }
 

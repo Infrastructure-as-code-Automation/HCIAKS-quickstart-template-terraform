@@ -4,7 +4,7 @@ variable "kubernetes_version" {
   default     = "1.28.5"
 }
 
-variable "controlPlaneCount" {
+variable "control_plane_count" {
   description = "The number of control plane nodes for the Kubernetes cluster."
   type        = number
   default     = 1
