@@ -140,12 +140,6 @@ data "azapi_resource" "logical_network" {
   parent_id  = azurerm_resource_group.rg.id
 }
 
-data "azurerm_key_vault" "deployment_key_vault" {
-  depends_on          = [module.azurestackhci-logicalnetwork]
-  name                = local.keyvault_name
-  resource_group_name = azurerm_resource_group.rg.name
-}
-
 module "hybridcontainerservice-provisionedclusterinstance" {
   source     = "../hybridcontainerservice-provisionedclusterinstance"
   depends_on = [module.azurestackhci-logicalnetwork]
@@ -159,7 +153,7 @@ module "hybridcontainerservice-provisionedclusterinstance" {
   custom_location_id          = data.azapi_resource.customlocation.id
   logical_network_id          = data.azapi_resource.logical_network.id
   agent_pool_profiles         = var.agent_pool_profiles
-  ssh_key_vault_id            = data.azurerm_key_vault.deployment_key_vault.id
+  ssh_key_vault_id            = module.azurestackhci-cluster.keyvault.id
   control_plane_ip            = var.aksArc-controlPlaneIp
   kubernetes_version          = var.kubernetes_version
   control_plane_count         = 1
