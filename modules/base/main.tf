@@ -4,7 +4,7 @@ provider "azurerm" {
 
 resource "azurerm_resource_group" "rg" {
   depends_on = [
-    data.external.lnetIpCheck
+    data.external.lnet_ip_check
   ]
   name     = local.resource_group_name
   location = var.location
@@ -30,8 +30,10 @@ module "edge-site" {
   enable_telemetry      = var.enable_telemetry
 }
 
+# Prepare AD
 module "hci-ad-provisioner" {
   source              = "../hci-ad-provisioner"
+  count               = var.enableProvisioners ? 1 : 0
   resource_group_name = azurerm_resource_group.rg.name
 
   enable_telemetry = var.enable_telemetry # see variables.tf
@@ -47,12 +49,13 @@ module "hci-ad-provisioner" {
   adou_path                = local.adou_path
 }
 
+# Prepare arc server
 module "hci-server-provisioner" {
-  source     = "../hci-server-provisioner"
-  for_each = {
+  source = "../hci-server-provisioner"
+  for_each = var.enableProvisioners ? {
     for index, server in var.servers :
     server.name => server.ipv4Address
-  }
+  } : {}
 
   enable_telemetry         = var.enable_telemetry # see variables.tf
   name                     = each.key
@@ -72,7 +75,7 @@ module "hci-server-provisioner" {
 
 module "azurestackhci-cluster" {
   source     = "../azurestackhci-cluster"
-  depends_on = [module.hci-server-provisioner]
+  depends_on = [module.hci-server-provisioner, module.hci-ad-provisioner]
 
   location            = azurerm_resource_group.rg.location
   name                = local.cluster_name # TODO update with module.naming.<RESOURCE_TYPE>.name_unique
@@ -91,12 +94,12 @@ module "azurestackhci-cluster" {
   servers                         = var.servers
   management_adapters             = var.management_adapters
   storage_networks                = var.storage_networks
-  rdma_enabled                    = false
-  storage_connectivity_switchless = false
+  rdma_enabled                    = var.rdmaEnabled
+  storage_connectivity_switchless = var.storageConnectivitySwitchless
   custom_location_name            = local.custom_location_name
   witness_storage_account_name    = local.witness_storage_account_name
   keyvault_name                   = local.keyvault_name
-  random_suffix                   = true
+  random_suffix                   = local.randomSuffix
   deployment_user                 = local.deployment_user_name
   deployment_user_password        = var.deployment_user_password
   local_admin_user                = var.local_admin_user
@@ -104,13 +107,6 @@ module "azurestackhci-cluster" {
   service_principal_id            = var.service_principal_id
   service_principal_secret        = var.service_principal_secret
   rp_service_principal_object_id  = var.rp_service_principal_object_id
-}
-
-data "azapi_resource" "customlocation" {
-  depends_on = [module.azurestackhci-cluster]
-  type       = "Microsoft.ExtendedLocation/customLocations@2021-08-15"
-  name       = local.custom_location_name
-  parent_id  = azurerm_resource_group.rg.id
 }
 
 module "azurestackhci-logicalnetwork" {
@@ -123,14 +119,14 @@ module "azurestackhci-logicalnetwork" {
 
   enable_telemetry   = var.enable_telemetry # see variables.tf
   resource_group_id  = azurerm_resource_group.rg.id
-  custom_location_id = data.azapi_resource.customlocation.id
-  vm_switch_name     = "ConvergedSwitch(managementcompute)"
+  custom_location_id = module.azurestackhci-cluster.customlocation.id
+  vm_switch_name     = module.azurestackhci-cluster.v_switch_name
   starting_address   = var.lnet_starting_address
   ending_address     = var.lnet_ending_address
-  dns_servers        = var.dns_servers
-  default_gateway    = var.default_gateway
+  dns_servers        = length(var.lnet-dnsServers) == 0 ? var.dns_servers : var.lnet-dnsServers
+  default_gateway    = var.lnet-defaultGateway == "" ? var.default_gateway : var.lnet-defaultGateway
   address_prefix     = var.lnet_address_prefix
-  vlan_id            = null
+  vlan_id            = var.lnet-vlanId
 }
 
 data "azapi_resource" "logical_network" {
@@ -142,7 +138,7 @@ data "azapi_resource" "logical_network" {
 
 module "hybridcontainerservice-provisionedclusterinstance" {
   source     = "../hybridcontainerservice-provisionedclusterinstance"
-  depends_on = [module.azurestackhci-logicalnetwork]
+  depends_on = [module.azurestackhci-cluster, module.azurestackhci-logicalnetwork]
 
   location            = azurerm_resource_group.rg.location
   name                = local.aks_arc_name
@@ -150,79 +146,15 @@ module "hybridcontainerservice-provisionedclusterinstance" {
 
   enable_telemetry = var.enable_telemetry # see variables.tf
 
-  custom_location_id          = data.azapi_resource.customlocation.id
-  logical_network_id          = data.azapi_resource.logical_network.id
+  custom_location_id          = module.azurestackhci-cluster.customlocation.id
+  logical_network_id          = module.azurestackhci-logicalnetwork.resource_id
   agent_pool_profiles         = var.agent_pool_profiles
   ssh_key_vault_id            = module.azurestackhci-cluster.keyvault.id
   control_plane_ip            = var.aksArc-controlPlaneIp
   kubernetes_version          = var.kubernetes_version
-  control_plane_count         = 1
+  control_plane_count         = var.controlPlaneCount
   rbac_admin_group_object_ids = var.rbac_admin_group_object_ids
 }
-
-# //Prepare AD and arc server
-# module "hci-provisioners" {
-#   depends_on             = [azurerm_resource_group.rg]
-#   count                  = var.enableProvisioners ? 1 : 0
-#   source                 = "../hci-provisioners"
-#   resourceGroup          = azurerm_resource_group.rg
-#   siteId                 = var.siteId
-#   domainFqdn             = var.domainFqdn
-#   adouPath               = local.adouPath
-#   domainServerIP         = var.domainServerIP
-#   domainAdminUser        = var.domainAdminUser
-#   domainAdminPassword    = var.domainAdminPassword
-#   authenticationMethod   = var.authenticationMethod
-#   servers                = var.servers
-#   clusterName            = local.clusterName
-#   subscriptionId         = var.subscriptionId
-#   localAdminUser         = var.localAdminUser
-#   localAdminPassword     = var.localAdminPassword
-#   deploymentUser         = local.deploymentUserName
-#   deploymentUserPassword = var.deploymentUserPassword
-#   servicePrincipalId     = var.servicePrincipalId
-#   servicePrincipalSecret = var.servicePrincipalSecret
-#   destory_adou           = var.destory_adou
-#   virtualHostIp          = var.virtualHostIp
-#   dcPort                 = var.dcPort
-#   serverPorts            = var.serverPorts
-# }
-
-# module "hci" {
-#   depends_on                    = [module.hci-provisioners]
-#   source                        = "../hci"
-#   resourceGroup                 = azurerm_resource_group.rg
-#   siteId                        = var.siteId
-#   domainFqdn                    = var.domainFqdn
-#   subnetMask                    = var.subnetMask
-#   startingAddress               = var.startingAddress
-#   endingAddress                 = var.endingAddress
-#   defaultGateway                = var.defaultGateway
-#   dnsServers                    = var.dnsServers
-#   adouPath                      = local.adouPath
-#   servers                       = var.servers
-#   managementAdapters            = var.managementAdapters
-#   storageNetworks               = var.storageNetworks
-#   rdmaEnabled                   = var.rdmaEnabled
-#   storageConnectivitySwitchless = var.storageConnectivitySwitchless
-#   clusterName                   = local.clusterName
-#   customLocationName            = local.customLocationName
-#   witnessStorageAccountName     = local.witnessStorageAccountName
-#   keyvaultName                  = local.keyvaultName
-#   randomSuffix                  = local.randomSuffix
-#   subscriptionId                = var.subscriptionId
-#   deploymentUser                = local.deploymentUserName
-#   deploymentUserPassword        = var.deploymentUserPassword
-#   localAdminUser                = var.localAdminUser
-#   localAdminPassword            = var.localAdminPassword
-#   servicePrincipalId            = var.servicePrincipalId
-#   servicePrincipalSecret        = var.servicePrincipalSecret
-#   rpServicePrincipalObjectId    = var.rpServicePrincipalObjectId
-# }
-
-# locals {
-#   serverNames = [for server in var.servers : server.name]
-# }
 
 # module "extension" {
 #   source                     = "../hci-extensions"
@@ -236,38 +168,6 @@ module "hybridcontainerservice-provisionedclusterinstance" {
 #   dataCollectionRuleName     = local.dataCollectionRuleName
 #   enableInsights             = var.enableInsights
 #   enableAlerts               = var.enableAlerts
-# }
-
-# module "logical-network" {
-#   source             = "../hci-logical-network"
-#   depends_on         = [module.hci]
-#   resourceGroupId    = azurerm_resource_group.rg.id
-#   location           = azurerm_resource_group.rg.location
-#   customLocationId   = module.hci.customlocation.id
-#   logicalNetworkName = local.logicalNetworkName
-#   vmSwitchName       = module.hci.vSwitchName
-#   startingAddress    = var.lnet-startingAddress
-#   endingAddress      = var.lnet-endingAddress
-#   dnsServers         = var.lnet-dnsServers == [] ? var.dnsServers : var.lnet-dnsServers
-#   defaultGateway     = var.lnet-defaultGateway == "" ? var.defaultGateway : var.lnet-defaultGateway
-#   addressPrefix      = var.lnet-addressPrefix
-#   vlanId             = var.lnet-vlanId
-# }
-
-# module "aks-arc" {
-#   source                  = "../aks-arc"
-#   depends_on              = [module.hci]
-#   customLocationId        = module.hci.customlocation.id
-#   resourceGroup           = azurerm_resource_group.rg
-#   logicalNetworkId        = module.logical-network.logicalNetworkId
-#   agentPoolProfiles       = var.agentPoolProfiles
-#   sshKeyVaultId           = module.hci.keyvault.id
-#   aksArcName              = local.aksArcName
-#   controlPlaneIp          = var.aksArc-controlPlaneIp
-#   arbId                   = module.hci.arcbridge.id
-#   kubernetesVersion       = var.kubernetesVersion
-#   controlPlaneCount       = var.controlPlaneCount
-#   rbacAdminGroupObjectIds = var.rbacAdminGroupObjectIds
 # }
 
 # module "vm-image" {
