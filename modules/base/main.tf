@@ -22,7 +22,7 @@ data "azurerm_client_config" "current" {}
 module "edge_site" {
   #source                = "../edge-site"
   source  = "Azure/avm-res-edge-site/azurerm"
-  version = "0.1.0"
+  version = "~>0.0"
 
   location              = azurerm_resource_group.rg.location
   address_resource_name = local.address_resource_name
