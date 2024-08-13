@@ -201,6 +201,50 @@ resource "azapi_resource" "alerts" {
   }
 }
 
+resource "azapi_resource" "winServerImage" {
+  depends_on       = [module.azurestackhci_cluster]
+  count     = var.download_win_server_image ? 1 : 0
+  type      = "Microsoft.AzureStackHCI/marketplaceGalleryImages@2023-09-01-preview"
+  name      = "winServer2022-01"
+  parent_id = azurerm_resource_group.rg.id
+  location  = azurerm_resource_group.rg.location
+  timeouts {
+    create = "24h"
+    delete = "60m"
+  }
+  lifecycle {
+    ignore_changes = [
+      body.properties.version.properties.storageProfile.osDiskImage
+    ]
+  }
+  body = {
+    properties = {
+      containerId      = var.user_storage_id == "" ? null : var.user_storage_id
+      osType           = "Windows"
+      hyperVGeneration = "V2"
+      identifier = {
+        publisher = "MicrosoftWindowsServer"
+        offer     = "WindowsServer"
+        sku       = "2022-datacenter-azure-edition"
+      }
+      version = {
+        name = "20348.2113.231109"
+        properties = {
+          storageProfile = {
+            osDiskImage = {
+            }
+          }
+        }
+      }
+    }
+    extendedLocation = {
+      name = module.azurestackhci_cluster.customlocation.id
+      type = "CustomLocation"
+    }
+  }
+}
+
+
 # module "vm-image" {
 #   source                 = "../hci-vm-gallery-image"
 #   depends_on             = [module.hci]
