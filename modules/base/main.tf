@@ -1,5 +1,9 @@
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -150,7 +154,7 @@ module "hybridcontainerservice_provisionedclusterinstance" {
   enable_telemetry = var.enable_telemetry # see variables.tf
 
   custom_location_id          = module.azurestackhci_cluster.customlocation.id
-  logical_network_id          = module.azurestackhci-logicalnetwork.resource_id
+  logical_network_id          = module.azurestackhci_logicalnetwork.resource_id
   agent_pool_profiles         = var.agent_pool_profiles
   ssh_key_vault_id            = module.azurestackhci_cluster.keyvault.id
   control_plane_ip            = var.aks_arc_control_plane_ip
@@ -159,19 +163,43 @@ module "hybridcontainerservice_provisionedclusterinstance" {
   rbac_admin_group_object_ids = var.rbac_admin_group_object_ids
 }
 
-# module "extension" {
-#   source                     = "../hci-extensions"
-#   depends_on                 = [module.hci]
-#   resourceGroup              = azurerm_resource_group.rg
-#   siteId                     = var.siteId
-#   arcSettingsId              = module.hci.arcSettings.id
-#   serverNames                = local.serverNames
-#   workspaceName              = local.workspaceName
-#   dataCollectionEndpointName = local.dataCollectionEndpointName
-#   dataCollectionRuleName     = local.dataCollectionRuleName
-#   enableInsights             = var.enableInsights
-#   enableAlerts               = var.enableAlerts
-# }
+locals {
+  server_names = [for server in var.servers : server.name]
+}
+
+module "azuremonitorwindowsagent" {
+  source           = "../azuremonitorwindowsagent"
+  depends_on       = [module.azurestackhci_cluster]
+  enable_telemetry = var.enable_telemetry
+
+  location                      = azurerm_resource_group.rg.location
+  count                         = var.enable_insights ? 1 : 0
+  resource_group_name           = azurerm_resource_group.rg.name
+  server_names                  = local.server_names
+  arc_setting_id                = module.azurestackhci_cluster.arc_settings.id
+  workspace_name                = local.workspace_name
+  data_collection_rule_name     = local.data_collection_rule_name
+  data_collection_endpoint_name = local.data_collection_endpoint_name
+}
+
+resource "azapi_resource" "alerts" {
+  depends_on = [module.azurestackhci_cluster]
+  count      = var.enable_alerts && var.enable_insights ? 1 : 0
+  type       = "Microsoft.AzureStackHCI/clusters/ArcSettings/Extensions@2023-08-01"
+  parent_id  = module.azurestackhci_cluster.arc_settings.id
+  name       = "AzureEdgeAlerts"
+  body = {
+    properties = {
+      extensionParameters = {
+        enableAutomaticUpgrade  = true
+        autoUpgradeMinorVersion = false
+        publisher               = "Microsoft.AzureStack.HCI.Alerts"
+        type                    = "AlertsForWindowsHCI"
+        settings                = {}
+      }
+    }
+  }
+}
 
 # module "vm-image" {
 #   source                 = "../hci-vm-gallery-image"
