@@ -136,13 +136,6 @@ module "azurestackhci_logicalnetwork" {
   vlan_id            = var.lnet_vlan_id
 }
 
-data "azapi_resource" "logical_network" {
-  depends_on = [module.azurestackhci_logicalnetwork]
-  type       = "Microsoft.AzureStackHCI/logicalNetworks@2023-09-01-preview"
-  name       = local.logical_network_name
-  parent_id  = azurerm_resource_group.rg.id
-}
-
 module "hybridcontainerservice_provisionedclusterinstance" {
   source     = "../hybridcontainerservice-provisionedclusterinstance"
   depends_on = [module.azurestackhci_cluster, module.azurestackhci_logicalnetwork]
@@ -201,13 +194,13 @@ resource "azapi_resource" "alerts" {
   }
 }
 
-resource "azapi_resource" "winServerImage" {
-  depends_on       = [module.azurestackhci_cluster]
-  count     = var.download_win_server_image ? 1 : 0
-  type      = "Microsoft.AzureStackHCI/marketplaceGalleryImages@2023-09-01-preview"
-  name      = "winServer2022-01"
-  parent_id = azurerm_resource_group.rg.id
-  location  = azurerm_resource_group.rg.location
+resource "azapi_resource" "win_server_image" {
+  depends_on = [module.azurestackhci_cluster]
+  count      = var.download_win_server_image ? 1 : 0
+  type       = "Microsoft.AzureStackHCI/marketplaceGalleryImages@2023-09-01-preview"
+  name       = "winServer2022-01"
+  parent_id  = azurerm_resource_group.rg.id
+  location   = azurerm_resource_group.rg.location
   timeouts {
     create = "24h"
     delete = "60m"
@@ -244,38 +237,29 @@ resource "azapi_resource" "winServerImage" {
   }
 }
 
-
-# module "vm-image" {
-#   source                 = "../hci-vm-gallery-image"
-#   depends_on             = [module.hci]
-#   customLocationId       = module.hci.customlocation.id
-#   resourceGroupId        = azurerm_resource_group.rg.id
-#   location               = azurerm_resource_group.rg.location
-#   downloadWinServerImage = var.downloadWinServerImage
-# }
-
-# module "vm" {
-#   count               = var.downloadWinServerImage ? 1 : 0
-#   source              = "../hci-vm"
-#   depends_on          = [module.vm-image]
-#   location            = azurerm_resource_group.rg.location
-#   customLocationId    = module.hci.customlocation.id
-#   resourceGroupId     = azurerm_resource_group.rg.id
-#   vmName              = local.vmName
-#   imageId             = module.vm-image.winServerImageId
-#   logicalNetworkId    = module.logical-network.logicalNetworkId
-#   adminUsername       = local.vmAdminUsername
-#   adminPassword       = var.vmAdminPassword
-#   vCPUCount           = var.vCPUCount
-#   memoryMB            = var.memoryMB
-#   dynamicMemory       = var.dynamicMemory
-#   dynamicMemoryMax    = var.dynamicMemoryMax
-#   dynamicMemoryMin    = var.dynamicMemoryMin
-#   dynamicMemoryBuffer = var.dynamicMemoryBuffer
-#   dataDiskParams      = var.dataDiskParams
-#   privateIPAddress    = var.privateIPAddress
-#   domainToJoin        = var.domainToJoin
-#   domainTargetOu      = var.domainTargetOu
-#   domainJoinUserName  = var.domainJoinUserName
-#   domainJoinPassword  = var.domainJoinPassword
-# }
+module "azurestackhci-virtualmachineinstance" {
+  count                 = var.download_win_server_image ? 1 : 0
+  source                = "../azurestackhci-virtualmachineinstance"
+  depends_on            = [azapi_resource.win_server_image]
+  enable_telemetry      = var.enable_telemetry
+  resource_group_name   = azurerm_resource_group.rg.name
+  location              = azurerm_resource_group.rg.location
+  custom_location_id    = module.azurestackhci_cluster.customlocation.id
+  name                  = local.vm_name
+  image_id              = var.download_win_server_image ? azapi_resource.win_server_image[0].id : null
+  logical_network_id    = module.azurestackhci_logicalnetwork.resource_id
+  admin_username        = local.vm_admin_username
+  admin_password        = var.vm_admin_password
+  v_cpu_count           = var.v_cpu_count
+  memory_mb             = var.memory_mb
+  dynamic_memory        = var.dynamic_memory
+  dynamic_memory_max    = var.dynamic_memory_max
+  dynamic_memory_min    = var.dynamic_memory_min
+  dynamic_memory_buffer = var.dynamic_memory_buffer
+  data_disk_params      = var.data_disk_params
+  private_ip_address    = var.private_ip_address
+  domain_to_join        = var.domain_to_join
+  domain_target_ou      = var.domain_target_ou
+  domain_join_user_name = var.domain_join_user_name
+  domain_join_password  = var.domain_join_password
+}
