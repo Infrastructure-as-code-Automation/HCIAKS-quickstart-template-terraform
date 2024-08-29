@@ -137,7 +137,10 @@ module "azurestackhci_logicalnetwork" {
 }
 
 module "hybridcontainerservice_provisionedclusterinstance" {
-  source     = "../hybridcontainerservice-provisionedclusterinstance"
+  #source     = "../hybridcontainerservice-provisionedclusterinstance"
+  source  = "Azure/avm-res-hybridcontainerservice-provisionedclusterinstance/azurerm"
+  version = "~>0.0"
+
   depends_on = [module.azurestackhci_cluster, module.azurestackhci_logicalnetwork]
 
   location            = azurerm_resource_group.rg.location
