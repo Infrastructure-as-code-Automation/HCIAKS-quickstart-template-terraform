@@ -24,7 +24,7 @@ resource "azurerm_resource_group" "rg" {
 data "azurerm_client_config" "current" {}
 
 module "edge_site" {
-  #source                = "../edge-site"
+  # source                = "../edge-site"
   source  = "Azure/avm-res-edge-site/azurerm"
   version = "~>0.0"
 
@@ -39,7 +39,10 @@ module "edge_site" {
 
 # Prepare AD
 module "hci_ad_provisioner" {
-  source              = "../hci-ad-provisioner"
+  # source              = "../hci-ad-provisioner"
+  source  = "Azure/avm-ptn-hci-ad-provisioner/azurerm"
+  version = "~>0.0"
+
   count               = var.enable_provisioners ? 1 : 0
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -58,7 +61,10 @@ module "hci_ad_provisioner" {
 
 # Prepare arc server
 module "hci_server_provisioner" {
-  source = "../hci-server-provisioner"
+  # source = "../hci-server-provisioner"
+  source  = "Azure/avm-ptn-hci-server-provisioner/azurerm"
+  version = "~>0.0"
+
   for_each = var.enable_provisioners ? {
     for index, server in var.servers :
     server.name => server.ipv4Address
@@ -81,7 +87,10 @@ module "hci_server_provisioner" {
 }
 
 module "azurestackhci_cluster" {
-  source     = "../azurestackhci-cluster"
+  # source     = "../azurestackhci-cluster"
+  source  = "Azure/avm-res-azurestackhci-cluster/azurerm"
+  version = "~>0.0"
+
   depends_on = [module.hci_server_provisioner, module.hci_ad_provisioner]
 
   location            = azurerm_resource_group.rg.location
@@ -117,7 +126,10 @@ module "azurestackhci_cluster" {
 }
 
 module "azurestackhci_logicalnetwork" {
-  source     = "../azurestackhci-logicalnetwork"
+  # source     = "../azurestackhci-logicalnetwork"
+  source  = "Azure/avm-res-azurestackhci-logicalnetwork/azurerm"
+  version = "~>0.0"
+
   depends_on = [module.azurestackhci_cluster]
 
   location            = azurerm_resource_group.rg.location
@@ -164,18 +176,18 @@ locals {
 }
 
 module "azuremonitorwindowsagent" {
-  source           = "../azuremonitorwindowsagent"
+  # source           = "../azuremonitorwindowsagent"
+  source  = "Azure/avm-ptn-azuremonitorwindowsagent/azurerm"
+  version = "~>0.0"
+
   depends_on       = [module.azurestackhci_cluster]
   enable_telemetry = var.enable_telemetry
 
-  location                      = azurerm_resource_group.rg.location
-  count                         = var.enable_insights ? 1 : 0
-  resource_group_name           = azurerm_resource_group.rg.name
-  server_names                  = local.server_names
-  arc_setting_id                = module.azurestackhci_cluster.arc_settings.id
-  workspace_name                = local.workspace_name
-  data_collection_rule_name     = local.data_collection_rule_name
-  data_collection_endpoint_name = local.data_collection_endpoint_name
+  count                            = var.enable_insights ? 1 : 0
+  resource_group_name              = azurerm_resource_group.rg.name
+  server_names                     = local.server_names
+  arc_setting_id                   = module.azurestackhci_cluster.arc_settings.id
+  data_collection_rule_resource_id = var.data_collection_rule_resource_id
 }
 
 resource "azapi_resource" "alerts" {
@@ -241,8 +253,11 @@ resource "azapi_resource" "win_server_image" {
 }
 
 module "azurestackhci-virtualmachineinstance" {
-  count                 = var.download_win_server_image ? 1 : 0
-  source                = "../azurestackhci-virtualmachineinstance"
+  count = var.download_win_server_image ? 1 : 0
+  # source                = "../azurestackhci-virtualmachineinstance"
+  source  = "Azure/avm-res-azurestackhci-virtualmachineinstance/azurerm"
+  version = "~>0.0"
+
   depends_on            = [azapi_resource.win_server_image]
   enable_telemetry      = var.enable_telemetry
   resource_group_name   = azurerm_resource_group.rg.name

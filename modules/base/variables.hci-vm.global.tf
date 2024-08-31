@@ -36,11 +36,12 @@ variable "dynamic_memory_buffer" {
 
 variable "data_disk_params" {
   description = "The array description of the dataDisks to attach to the vm. Provide an empty array for no additional disks, or an array following the example below."
-  type = list(object({
+  type = map(object({
     diskSizeGB = number
     dynamic    = bool
+    name       = string
   }))
-  default = []
+  default = {}
 }
 
 variable "private_ip_address" {

@@ -9,3 +9,8 @@ variable "enable_alerts" {
   type        = bool
   default     = false
 }
+
+variable "data_collection_rule_resource_id" {
+  type        = string
+  description = "The id of the Azure Log Analytics data collection rule."
+}
