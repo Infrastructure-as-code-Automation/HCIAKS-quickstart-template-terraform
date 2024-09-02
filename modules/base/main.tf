@@ -24,7 +24,6 @@ resource "azurerm_resource_group" "rg" {
 data "azurerm_client_config" "current" {}
 
 module "edge_site" {
-  # source                = "../edge-site"
   source  = "Azure/avm-res-edge-site/azurerm"
   version = "~>0.0"
 
@@ -39,7 +38,6 @@ module "edge_site" {
 
 # Prepare AD
 module "hci_ad_provisioner" {
-  # source              = "../hci-ad-provisioner"
   source  = "Azure/avm-ptn-hci-ad-provisioner/azurerm"
   version = "~>0.0"
 
@@ -61,7 +59,6 @@ module "hci_ad_provisioner" {
 
 # Prepare arc server
 module "hci_server_provisioner" {
-  # source = "../hci-server-provisioner"
   source  = "Azure/avm-ptn-hci-server-provisioner/azurerm"
   version = "~>0.0"
 
@@ -87,7 +84,6 @@ module "hci_server_provisioner" {
 }
 
 module "azurestackhci_cluster" {
-  # source     = "../azurestackhci-cluster"
   source  = "Azure/avm-res-azurestackhci-cluster/azurerm"
   version = "~>0.0"
 
@@ -126,7 +122,6 @@ module "azurestackhci_cluster" {
 }
 
 module "azurestackhci_logicalnetwork" {
-  # source     = "../azurestackhci-logicalnetwork"
   source  = "Azure/avm-res-azurestackhci-logicalnetwork/azurerm"
   version = "~>0.0"
 
@@ -149,7 +144,6 @@ module "azurestackhci_logicalnetwork" {
 }
 
 module "hybridcontainerservice_provisionedclusterinstance" {
-  #source     = "../hybridcontainerservice-provisionedclusterinstance"
   source  = "Azure/avm-res-hybridcontainerservice-provisionedclusterinstance/azurerm"
   version = "~>0.0"
 
@@ -176,7 +170,6 @@ locals {
 }
 
 module "azuremonitorwindowsagent" {
-  # source           = "../azuremonitorwindowsagent"
   source  = "Azure/avm-ptn-azuremonitorwindowsagent/azurerm"
   version = "~>0.0"
 
@@ -207,77 +200,4 @@ resource "azapi_resource" "alerts" {
       }
     }
   }
-}
-
-resource "azapi_resource" "win_server_image" {
-  depends_on = [module.azurestackhci_cluster]
-  count      = var.download_win_server_image ? 1 : 0
-  type       = "Microsoft.AzureStackHCI/marketplaceGalleryImages@2023-09-01-preview"
-  name       = "winServer2022-01"
-  parent_id  = azurerm_resource_group.rg.id
-  location   = azurerm_resource_group.rg.location
-  timeouts {
-    create = "24h"
-    delete = "60m"
-  }
-  lifecycle {
-    ignore_changes = [
-      body.properties.version.properties.storageProfile.osDiskImage
-    ]
-  }
-  body = {
-    properties = {
-      containerId      = var.user_storage_id == "" ? null : var.user_storage_id
-      osType           = "Windows"
-      hyperVGeneration = "V2"
-      identifier = {
-        publisher = "MicrosoftWindowsServer"
-        offer     = "WindowsServer"
-        sku       = "2022-datacenter-azure-edition"
-      }
-      version = {
-        name = "20348.2113.231109"
-        properties = {
-          storageProfile = {
-            osDiskImage = {
-            }
-          }
-        }
-      }
-    }
-    extendedLocation = {
-      name = module.azurestackhci_cluster.customlocation.id
-      type = "CustomLocation"
-    }
-  }
-}
-
-module "azurestackhci-virtualmachineinstance" {
-  count = var.download_win_server_image ? 1 : 0
-  # source                = "../azurestackhci-virtualmachineinstance"
-  source  = "Azure/avm-res-azurestackhci-virtualmachineinstance/azurerm"
-  version = "~>0.0"
-
-  depends_on            = [azapi_resource.win_server_image]
-  enable_telemetry      = var.enable_telemetry
-  resource_group_name   = azurerm_resource_group.rg.name
-  location              = azurerm_resource_group.rg.location
-  custom_location_id    = module.azurestackhci_cluster.customlocation.id
-  name                  = local.vm_name
-  image_id              = var.download_win_server_image ? azapi_resource.win_server_image[0].id : null
-  logical_network_id    = module.azurestackhci_logicalnetwork.resource_id
-  admin_username        = local.vm_admin_username
-  admin_password        = var.vm_admin_password
-  v_cpu_count           = var.v_cpu_count
-  memory_mb             = var.memory_mb
-  dynamic_memory        = var.dynamic_memory
-  dynamic_memory_max    = var.dynamic_memory_max
-  dynamic_memory_min    = var.dynamic_memory_min
-  dynamic_memory_buffer = var.dynamic_memory_buffer
-  data_disk_params      = var.data_disk_params
-  private_ip_address    = var.private_ip_address
-  domain_to_join        = var.domain_to_join
-  domain_target_ou      = var.domain_target_ou
-  domain_join_user_name = var.domain_join_user_name
-  domain_join_password  = var.domain_join_password
 }
