@@ -75,7 +75,6 @@ Change the modules\base\main.tf file in your repo if you want different value fr
 | <a name="input_control_plane_count"></a> [control\_plane\_count](#input\_control\_plane\_count) | The number of control plane nodes for the Kubernetes cluster. | `number` | `1` | no |
 | <a name="input_country"></a> [country](#input\_country) | The order country of the site. | `string` | `"US"` | no |
 | <a name="input_data_collection_rule_resource_id"></a> [data\_collection\_rule\_resource\_id](#input\_data\_collection\_rule\_resource\_id) | The id of the Azure Log Analytics data collection rule. | `string` | n/a | yes |
-| <a name="input_data_disk_params"></a> [data\_disk\_params](#input\_data\_disk\_params) | The array description of the dataDisks to attach to the vm. Provide an empty array for no additional disks, or an array following the example below. | <pre>map(object({<br>    diskSizeGB = number<br>    dynamic    = bool<br>    name       = string<br>  }))</pre> | `{}` | no |
 | <a name="input_dc_ip"></a> [dc\_ip](#input\_dc\_ip) | The ip of the server. | `string` | n/a | yes |
 | <a name="input_dc_port"></a> [dc\_port](#input\_dc\_port) | Domain controller winrm port in virtual host | `number` | `6985` | no |
 | <a name="input_default_gateway"></a> [default\_gateway](#input\_default\_gateway) | The default gateway for the network. | `string` | `"192.168.1.1"` | no |
@@ -85,15 +84,6 @@ Change the modules\base\main.tf file in your repo if you want different value fr
 | <a name="input_domain_admin_password"></a> [domain\_admin\_password](#input\_domain\_admin\_password) | The password for the domain administrator account. | `string` | n/a | yes |
 | <a name="input_domain_admin_user"></a> [domain\_admin\_user](#input\_domain\_admin\_user) | The username for the domain administrator account. | `string` | n/a | yes |
 | <a name="input_domain_fqdn"></a> [domain\_fqdn](#input\_domain\_fqdn) | The domain FQDN. | `string` | `"jumpstart.local"` | no |
-| <a name="input_domain_join_password"></a> [domain\_join\_password](#input\_domain\_join\_password) | Optional Password of User with permissions to join the domain. - Required if 'domainToJoin' is specified. | `string` | `""` | no |
-| <a name="input_domain_join_user_name"></a> [domain\_join\_user\_name](#input\_domain\_join\_user\_name) | Optional User Name with permissions to join the domain. example: domain-joiner - Required if 'domainToJoin' is specified. | `string` | `""` | no |
-| <a name="input_domain_target_ou"></a> [domain\_target\_ou](#input\_domain\_target\_ou) | Optional domain organizational unit to join. example: ou=computers,dc=contoso,dc=com - Required if 'domainToJoin' is specified. | `string` | `""` | no |
-| <a name="input_domain_to_join"></a> [domain\_to\_join](#input\_domain\_to\_join) | Optional Domain name to join - specify to join the VM to domain. example: contoso.com - If left empty, ou, username and password parameters will not be evaluated in the deployment. | `string` | `""` | no |
-| <a name="input_download_win_server_image"></a> [download\_win\_server\_image](#input\_download\_win\_server\_image) | Whether to download Windows Server image | `bool` | `true` | no |
-| <a name="input_dynamic_memory"></a> [dynamic\_memory](#input\_dynamic\_memory) | Enable dynamic memory | `bool` | `false` | no |
-| <a name="input_dynamic_memory_buffer"></a> [dynamic\_memory\_buffer](#input\_dynamic\_memory\_buffer) | Buffer memory in MB when dynamic memory is enabled | `number` | `20` | no |
-| <a name="input_dynamic_memory_max"></a> [dynamic\_memory\_max](#input\_dynamic\_memory\_max) | Maximum memory in MB when dynamic memory is enabled | `number` | `8192` | no |
-| <a name="input_dynamic_memory_min"></a> [dynamic\_memory\_min](#input\_dynamic\_memory\_min) | Minimum memory in MB when dynamic memory is enabled | `number` | `512` | no |
 | <a name="input_email_list"></a> [email\_list](#input\_email\_list) | A list of email addresses for the site. | `list(string)` | `[]` | no |
 | <a name="input_enable_alerts"></a> [enable\_alerts](#input\_enable\_alerts) | Whether to enable Azure Monitor Alerts. | `bool` | `false` | no |
 | <a name="input_enable_insights"></a> [enable\_insights](#input\_enable\_insights) | Whether to enable Azure Monitor Insights. | `bool` | `false` | no |
@@ -111,12 +101,10 @@ Change the modules\base\main.tf file in your repo if you want different value fr
 | <a name="input_local_admin_user"></a> [local\_admin\_user](#input\_local\_admin\_user) | The username for the local administrator account. | `string` | n/a | yes |
 | <a name="input_location"></a> [location](#input\_location) | The Azure region where the resources will be deployed. | `string` | n/a | yes |
 | <a name="input_management_adapters"></a> [management\_adapters](#input\_management\_adapters) | n/a | `list(string)` | <pre>[<br>  "FABRIC",<br>  "FABRIC2"<br>]</pre> | no |
-| <a name="input_memory_mb"></a> [memory\_mb](#input\_memory\_mb) | Memory in MB | `number` | `8192` | no |
 | <a name="input_mobile"></a> [mobile](#input\_mobile) | The mobile phone number of the site. | `string` | `""` | no |
 | <a name="input_phone"></a> [phone](#input\_phone) | The phone number of the site. | `string` | `""` | no |
 | <a name="input_phone_extension"></a> [phone\_extension](#input\_phone\_extension) | The phone extension of the site. | `string` | `""` | no |
 | <a name="input_postal_code"></a> [postal\_code](#input\_postal\_code) | The postal code of the site. | `string` | `""` | no |
-| <a name="input_private_ip_address"></a> [private\_ip\_address](#input\_private\_ip\_address) | The private IP address of the NIC | `string` | `""` | no |
 | <a name="input_rbac_admin_group_object_ids"></a> [rbac\_admin\_group\_object\_ids](#input\_rbac\_admin\_group\_object\_ids) | The object id of the Azure AD group that will be assigned the 'cluster-admin' role in the Kubernetes cluster. | `list(string)` | <pre>[<br>  "ed888f99-66c1-48fe-992f-030f49ba50ed"<br>]</pre> | no |
 | <a name="input_rdma_enabled"></a> [rdma\_enabled](#input\_rdma\_enabled) | Indicates whether RDMA is enabled. | `bool` | n/a | yes |
 | <a name="input_rp_service_principal_object_id"></a> [rp\_service\_principal\_object\_id](#input\_rp\_service\_principal\_object\_id) | The object ID of the HCI resource provider service principal. | `string` | `""` | no |
@@ -134,10 +122,7 @@ Change the modules\base\main.tf file in your repo if you want different value fr
 | <a name="input_street_address_3"></a> [street\_address\_3](#input\_street\_address\_3) | The third line of the street address of the site. | `string` | `""` | no |
 | <a name="input_subnet_mask"></a> [subnet\_mask](#input\_subnet\_mask) | The subnet mask for the network. | `string` | `"255.255.255.0"` | no |
 | <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id) | The subscription ID for resources. | `string` | n/a | yes |
-| <a name="input_user_storage_id"></a> [user\_storage\_id](#input\_user\_storage\_id) | The user storage ID to store images. | `string` | `""` | no |
-| <a name="input_v_cpu_count"></a> [v\_cpu\_count](#input\_v\_cpu\_count) | Number of vCPUs | `number` | `2` | no |
 | <a name="input_virtual_host_ip"></a> [virtual\_host\_ip](#input\_virtual\_host\_ip) | The virtual host IP address. | `string` | n/a | yes |
-| <a name="input_vm_admin_password"></a> [vm\_admin\_password](#input\_vm\_admin\_password) | Admin password for the VM | `string` | n/a | yes |
 | <a name="input_zip_extended_code"></a> [zip\_extended\_code](#input\_zip\_extended\_code) | The extended ZIP code of the site. | `string` | `""` | no |
 
 ## Outputs
