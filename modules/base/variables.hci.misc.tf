@@ -5,7 +5,7 @@ variable "rp_service_principal_object_id" {
 }
 
 variable "deployment_user_password" {
-  # sensitive   = true
+  sensitive   = true
   type        = string
   description = "The password for deployment user."
 }
@@ -16,20 +16,20 @@ variable "local_admin_user" {
 }
 
 variable "local_admin_password" {
-  # sensitive   = true
+  sensitive   = true
   type        = string
   description = "The password for the local administrator account."
 }
 
 variable "service_principal_id" {
   type        = string
-  # sensitive   = true
+  sensitive   = true
   description = "The service principal ID for ARB."
 }
 
 variable "service_principal_secret" {
   type        = string
-  # sensitive   = true
+  sensitive   = true
   description = "The service principal secret."
 }
 

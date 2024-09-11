@@ -4,6 +4,11 @@ variable "enable_provisioners" {
   description = "Whether to enable provisioners."
 }
 
+variable "dc_ip" {
+  type        = string
+  description = "The ip of the server."
+}
+
 variable "destory_adou" {
   description = "whether destroy previous adou"
   default     = false
@@ -17,5 +22,5 @@ variable "authentication_method" {
     condition     = can(regex("^(Default|Basic|Negotiate|NegotiateWithImplicitCredential|Credssp|Digest|Kerberos)$", var.authentication_method))
     error_message = "Value of authenticationMethod should be {Default | Basic | Negotiate | NegotiateWithImplicitCredential | Credssp | Digest | Kerberos}"
   }
-  default = "Credssp"
+  default = "Default"
 }

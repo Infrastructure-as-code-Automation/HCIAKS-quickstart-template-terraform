@@ -13,4 +13,5 @@ variable "enable_alerts" {
 variable "data_collection_rule_resource_id" {
   type        = string
   description = "The id of the Azure Log Analytics data collection rule."
+  default     = ""
 }

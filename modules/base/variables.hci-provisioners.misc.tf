@@ -14,21 +14,19 @@ variable "domain_admin_password" {
 variable "virtual_host_ip" {
   type        = string
   description = "The virtual host IP address."
+  default     = ""
 }
 
 variable "dc_port" {
   type        = number
   description = "Domain controller winrm port in virtual host"
-  default     = 6985
+  default     = 5985
 }
 
 variable "server_ports" {
   type        = map(number)
   description = "Server winrm ports in virtual host"
-  default = {
-    "AzSHOST1" = 15985,
-    "AzSHOST2" = 25985
-  }
+  default     = {}
 }
 
 

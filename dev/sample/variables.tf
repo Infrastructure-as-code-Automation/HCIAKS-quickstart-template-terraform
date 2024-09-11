@@ -1,4 +1,4 @@
-variable "subscriptionId" {
+variable "subscription_id" {
   description = "The subscription id to register this environment."
   type        = string
 }
@@ -51,14 +51,14 @@ variable "rp_service_principal_object_id" {
   description = "The object ID of the HCI resource provider service principal."
 }
 
-variable "vmAdminPassword" {
+variable "vm_admin_password" {
   description = "Admin password for the VM"
   type        = string
   sensitive   = true
   default     = ""
 }
 
-variable "domainJoinPassword" {
+variable "domain_join_password" {
   description = "Password of User with permissions to join the domain."
   type        = string
   sensitive   = true

@@ -33,5 +33,5 @@ variable "rbac_admin_group_object_ids" {
   description = "The object id of the Azure AD group that will be assigned the 'cluster-admin' role in the Kubernetes cluster."
   type        = list(string)
   # Add your default admin groups here. Refer to the documentation under doc/AKS-Arc-Admin-Groups.md for more information.
-  default = ["ed888f99-66c1-48fe-992f-030f49ba50ed"]
+  # default     = ["<your-admin-group-object-id>"]
 }
