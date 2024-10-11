@@ -52,7 +52,7 @@ module "hci_ad_provisioner" {
 # Prepare arc server
 module "hci_server_provisioner" {
   source  = "Azure/avm-ptn-hci-server-provisioner/azurerm"
-  version = "~>0.0"
+  version = "~>0.1"
 
   for_each = var.enable_provisioners ? {
     for index, server in var.servers :
@@ -77,13 +77,14 @@ module "hci_server_provisioner" {
 
 module "azurestackhci_cluster" {
   source  = "Azure/avm-res-azurestackhci-cluster/azurerm"
-  version = "~>0.0"
+  version = "~>0.8"
 
   depends_on = [module.hci_server_provisioner, module.hci_ad_provisioner]
 
-  location            = azurerm_resource_group.rg.location
-  name                = local.cluster_name
-  resource_group_name = azurerm_resource_group.rg.name
+  location                = azurerm_resource_group.rg.location
+  name                    = local.cluster_name
+  resource_group_id       = azurerm_resource_group.rg.id
+  resource_group_location = azurerm_resource_group.rg.location
 
   enable_telemetry = var.enable_telemetry # see variables.tf
 
@@ -115,35 +116,35 @@ module "azurestackhci_cluster" {
 
 module "azurestackhci_logicalnetwork" {
   source  = "Azure/avm-res-azurestackhci-logicalnetwork/azurerm"
-  version = "~>0.0"
+  version = "~>0.4"
 
   depends_on = [module.azurestackhci_cluster]
 
-  location            = azurerm_resource_group.rg.location
-  name                = local.logical_network_name
-  resource_group_name = azurerm_resource_group.rg.name
+  location = azurerm_resource_group.rg.location
+  name     = local.logical_network_name
 
-  enable_telemetry   = var.enable_telemetry # see variables.tf
-  resource_group_id  = azurerm_resource_group.rg.id
-  custom_location_id = module.azurestackhci_cluster.customlocation.id
-  vm_switch_name     = module.azurestackhci_cluster.v_switch_name
-  starting_address   = var.lnet_starting_address
-  ending_address     = var.lnet_ending_address
-  dns_servers        = length(var.lnet_dns_servers) == 0 ? var.dns_servers : var.lnet_dns_servers
-  default_gateway    = var.lnet_default_gateway == "" ? var.default_gateway : var.lnet_default_gateway
-  address_prefix     = var.lnet_address_prefix
-  vlan_id            = var.lnet_vlan_id
+  enable_telemetry     = var.enable_telemetry # see variables.tf
+  resource_group_id    = azurerm_resource_group.rg.id
+  custom_location_id   = module.azurestackhci_cluster.customlocation.id
+  vm_switch_name       = module.azurestackhci_cluster.v_switch_name
+  starting_address     = var.lnet_starting_address
+  ending_address       = var.lnet_ending_address
+  dns_servers          = length(var.lnet_dns_servers) == 0 ? var.dns_servers : var.lnet_dns_servers
+  default_gateway      = var.lnet_default_gateway == "" ? var.default_gateway : var.lnet_default_gateway
+  address_prefix       = var.lnet_address_prefix
+  vlan_id              = var.lnet_vlan_id
+  ip_allocation_method = "Static"
 }
 
 module "hybridcontainerservice_provisionedclusterinstance" {
   source  = "Azure/avm-res-hybridcontainerservice-provisionedclusterinstance/azurerm"
-  version = "~>0.0"
+  version = "~>0.3"
 
   depends_on = [module.azurestackhci_cluster, module.azurestackhci_logicalnetwork]
 
-  location            = azurerm_resource_group.rg.location
-  name                = local.aks_arc_name
-  resource_group_name = azurerm_resource_group.rg.name
+  location          = azurerm_resource_group.rg.location
+  name              = local.aks_arc_name
+  resource_group_id = azurerm_resource_group.rg.id
 
   enable_telemetry = var.enable_telemetry # see variables.tf
 
@@ -158,19 +159,19 @@ module "hybridcontainerservice_provisionedclusterinstance" {
 }
 
 locals {
-  server_names = [for server in var.servers : server.name]
+  arc_server_ids = { for server in var.servers : server.name => "${azurerm_resource_group.rg.id}/providers/Microsoft.HybridCompute/machines/${server.name}" }
 }
 
 module "azuremonitorwindowsagent" {
   source  = "Azure/avm-ptn-azuremonitorwindowsagent/azurerm"
-  version = "~>0.0"
+  version = "~>0.4"
 
   depends_on       = [module.azurestackhci_cluster]
   enable_telemetry = var.enable_telemetry
 
   count                            = var.enable_insights ? 1 : 0
   resource_group_name              = azurerm_resource_group.rg.name
-  server_names                     = local.server_names
+  arc_server_ids                   = local.arc_server_ids
   arc_setting_id                   = module.azurestackhci_cluster.arc_settings.id
   data_collection_rule_resource_id = var.data_collection_rule_resource_id
 }
